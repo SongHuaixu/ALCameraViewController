@@ -28,7 +28,20 @@ public class CameraView: UIView {
         session.sessionPreset = AVCaptureSession.Preset.photo
 
         device = cameraWithPosition(position: currentPosition)
-        if let device = device , device.hasFlash {
+
+        guard let device = device else {
+            var message = "摄像头好像有点问题！"
+            if currentPosition == .back {
+                message = "后置摄像头好像有点问题！"
+            }else if currentPosition == .front {
+                message = "前置摄像头好像有点问题！"
+            }
+            UIAlertView.init(title: "提示", message: message, delegate: nil, cancelButtonTitle: "").show()
+            return
+        }
+
+
+        if device.hasFlash {
             do {
                 try device.lockForConfiguration()
                 device.flashMode = .auto
@@ -248,20 +261,33 @@ public class CameraView: UIView {
     }
 
     public func swapCameraInput() {
-        
-        guard let session = session, let currentInput = input else {
+     
+        guard let session = session else {
             return
         }
-        
+
         session.beginConfiguration()
-        session.removeInput(currentInput)
+        if let currentInput = input {
+            session.removeInput(currentInput)
+        }
         
-        if currentInput.device.position == AVCaptureDevice.Position.back {
+        if currentPosition == AVCaptureDevice.Position.back {
             currentPosition = AVCaptureDevice.Position.front
             device = cameraWithPosition(position: currentPosition)
         } else {
             currentPosition = AVCaptureDevice.Position.back
             device = cameraWithPosition(position: currentPosition)
+        }
+
+        guard let device = device else {
+            var message = "摄像头好像有点问题！"
+            if currentPosition == .back {
+                message = "后置摄像头好像有点问题！"
+            }else if currentPosition == .front {
+                message = "前置摄像头好像有点问题！"
+            }
+            UIAlertView.init(title: "提示", message: message, delegate: nil, cancelButtonTitle: "").show()
+            return
         }
         
         guard let newInput = try? AVCaptureDeviceInput(device: device) else {
@@ -269,9 +295,28 @@ public class CameraView: UIView {
         }
         
         input = newInput
-        
-        session.addInput(newInput)
-        session.commitConfiguration()
+
+        if session.canAddInput(newInput) {
+            session.addInput(newInput)
+        }
+
+        if imageOutput == nil {
+            imageOutput = AVCaptureStillImageOutput()
+            let outputSettings = [AVVideoCodecKey: AVVideoCodecJPEG]
+            imageOutput.outputSettings = outputSettings
+
+            session.addOutput(imageOutput)
+
+            cameraQueue.sync {
+                session.startRunning()
+                DispatchQueue.main.async() { [weak self] in
+                    self?.createPreview()
+                    self?.rotatePreview()
+                }
+            }
+        }else{
+            session.commitConfiguration()
+        }
     }
   
     public func rotatePreview() {
