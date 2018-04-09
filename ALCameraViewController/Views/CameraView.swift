@@ -266,7 +266,10 @@ public class CameraView: UIView {
             return
         }
 
-        session.beginConfiguration()
+        if imageOutput != nil {
+            session.beginConfiguration()
+        }
+        
         if let currentInput = input {
             session.removeInput(currentInput)
         }
