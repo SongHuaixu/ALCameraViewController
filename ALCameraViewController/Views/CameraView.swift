@@ -36,7 +36,7 @@ public class CameraView: UIView {
             }else if currentPosition == .front {
                 message = "前置摄像头好像有点问题！"
             }
-            UIAlertView.init(title: "提示", message: message, delegate: nil, cancelButtonTitle: "").show()
+            UIAlertView.init(title: "提示", message: message, delegate: nil, cancelButtonTitle: "确定").show()
             return
         }
 
@@ -55,6 +55,7 @@ public class CameraView: UIView {
             input = try AVCaptureDeviceInput(device: device)
         } catch let error as NSError {
             input = nil
+            UIAlertView.init(title: "提示", message: error.localizedDescription, delegate: nil, cancelButtonTitle: "确定").show()
             print("Error: \(error.localizedDescription)")
             return
         }
